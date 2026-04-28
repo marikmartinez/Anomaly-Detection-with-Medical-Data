@@ -1,8 +1,71 @@
 import numpy as np
 import pandas as pd
+import pandas as df
 import sklearn
 
+def load_clinical_data(filePath="data/VitalDB/clinical_data.csv", selected_columns=None, preprocess=True):
+    data = pd.read_csv(filePath)
 
+    print(len(data.columns))
+    print("DEBUGGING num rows before", len(data))
+
+    # Idk if this will drop too many columns (Yes it will)
+    #data = data.dropna()
+    # TODO: wtf is going on here D:
+
+
+    # Columns that are NA often
+    often_na_cols = ["preop_ph","preop_hco3", "preop_be", "preop_pao2", "preop_paco2", "preop_sao2", "lmasize", "iv2", "aline2", "cline1", "cline2", "intraop_ebl", "intraop_uo"]
+    unimportant_cols = ["tubesize", "dltubesize", "aline1"]
+    data = data.drop(columns=often_na_cols + unimportant_cols)
+    # TODO: remove this later after debugging
+    #data = data[["age", "height", "weight", "sex"]]
+    print("num rows", len(data))
+    data = data.dropna()
+    print("DROPPED NAS")
+    print("num rows", len(data))
+    print("NUM COLS", len(data.columns))
+
+    # TODO: uncomment these; just starting out really simple for now
+    numeric_cols=["age", "height", "weight", "bmi", "asa", "preop_hb", "preop_plt", "preop_pt", "preop_aptt",
+                  "preop_na", "preop_k", "preop_gluc", "preop_alb", "preop_ast", "preop_alt", "preop_bun", "preop_cr",
+                  "intraop_rbc", "intraop_ffp", "intraop_crystalloid", "intraop_colloid", "intraop_ppf", "intraop_ftn",
+                  "intraop_rocu", "intraop_vecu", "intraop_eph", "intraop_phe", "intraop_epi", "intraop_ca"]
+
+    #numeric_cols=["age", "height", "weight"]
+    #categorical_cols=["department", "optype", "dx", "opname", "preop_ecg", "preop_pft"]
+    # TODO: figure out what to do with the really big categorical cols
+    categorical_cols=["cormack", "airway", "iv1", "preop_ecg"]
+    #binary_cols=["sex"]
+    #numeric_cols=["age", "height", "weight"]
+    #categorical_cols=["dx"]
+    binary_cols=["sex"]
+
+    # Age is a string for some reason and has some weird values that can't be turned into floats (yes there are floats in the age for patients younger than 1)
+    # So I have to get rid of the weird ones and keep all of them as a float
+    data["age"] = pd.to_numeric(data["age"], errors='coerce')
+
+    #data = data.loc[:, ["caseid", "subjectid", "age", "sex", "height", "weight", "bmi", "asa", "emop", "department", "optype", "dx", "opname", "preop_htn", "preop_dm", "preop_ecg", "preop_pft", "preop_hb", "preop_plt", "preop_pt", "preop_aptt", "preop_na", "preop_k", "preop_gluc", "preop_alb", "preop_ast", "preop_alt", "preop_bun", "preop_cr"]]
+    #print("UNIQUE DXs", len(np.unique(data["dx"])))
+
+    # TODO: do I have to reinitialize this every time? idk
+
+    if preprocess:
+        data = preprocess_dataframe(data, numeric_cols, categorical_cols, binary_cols, onehot=True)
+
+    if selected_columns is not None:
+        data = data.loc[:, data.columns.str.startswith(selected_columns)]
+
+    # DROPPING NAS AGAIN
+
+    print("AHHH NUM COLS", len(data.columns))
+    print("AHH NUM ROWS", len(data))
+    print("DROPPING NAS AGAIN")
+    data = data.dropna()
+    print("AHHH NUM COLS", len(data.columns))
+    print("AHH NUM ROWS", len(data))
+
+    return data
 
 def load_heart_data(filePath="data/heart.csv", selected_columns=None, preprocess=True):
     data = pd.read_csv(filePath)
@@ -17,9 +80,6 @@ def load_heart_data(filePath="data/heart.csv", selected_columns=None, preprocess
     assert len(numeric_cols)+len(categorical_cols)+len(binary_cols) == len(list(data.columns))
 
     if preprocess:
-        # Drop the heart disease variable
-        data = data.drop(columns='target')
-        binary_cols.remove("target")
 
         # Do preprocessing steps
         data = preprocess_dataframe(data, numeric_cols, categorical_cols, binary_cols, onehot=True)
@@ -90,59 +150,7 @@ def preprocess_dataframe(dataframe, numeric_cols, categorical_cols, binary_cols,
     return dataframe
 
 
-# Not used in tech demo. STOP HERE -------------------------------------------------------------------------------
-def load_clinical_data(filePath="data/VitalDB/clinical_data.csv", columns=None, preprocess=True):
-    data = pd.read_csv(filePath)
 
-    print(len(data.columns))
-    print("num rows before", len(data))
-    #data = data.drop(["preop_ph","preop_hco3", "preop_be", "preop_pao2", "preop_paco2", "preop_sao2"], axis=1)
-
-    # Idk if this will drop too many columns (Yes it will)
-    #data = data.dropna()
-    # TODO: wtf is going on here D:
-    data = data.loc[:, ["caseid", "subjectid", "age", "sex", "height", "weight", "bmi", "asa", "emop", "department", "optype", "dx", "opname", "preop_htn", "preop_dm", "preop_ecg", "preop_pft", "preop_hb", "preop_plt", "preop_pt", "preop_aptt", "preop_na", "preop_k", "preop_gluc", "preop_alb", "preop_ast", "preop_alt", "preop_bun", "preop_cr"]]
-    print("UNIQUE DXs", len(np.unique(data["dx"])))
-    data = data.dropna()
-
-
-    print("num rows", len(data))
-    print(len(data.columns))
-    # Age is a string for some reason and has some weird values that can't be turned into floats (yes there are floats in the age for patients younger than 1)
-    # So I have to get rid of the weird ones and keep all of them as a float
-    data["age"] = pd.to_numeric(data["age"], errors='coerce').dropna()
-
-    # TODO: uncomment these; just starting out really simple for now
-    numeric_cols=["age", "height", "weight", "bmi", "asa", "preop_hb", "preop_plt", "preop_pt", "preop_aptt", "preop_na", "preop_k", "preop_gluc", "preop_alb", "preop_ast", "preop_alt", "preop_bun", "preop_cr"]
-    categorical_cols=["department", "optype", "dx", "opname", "preop_ecg", "preop_pft"]
-    #binary_cols=["sex"]
-    #numeric_cols=["age", "height", "weight"]
-    #categorical_cols=["dx"]
-    binary_cols=["sex"]
-
-    # TODO: do I have to reinitialize this every time? idk
-
-
-    if preprocess:
-        data = preprocess_dataframe(data, numeric_cols, categorical_cols, binary_cols, onehot=True)
-
-
-    # TODO: add more starting strings in tuple if want to add more categorical
-
-    #data_numeric = data[["age", "height", "weight"]]
-    if columns is not None:
-        data = data.loc[:, data.columns.str.startswith(columns)]
-
-    #data_numeric = data[["height", "weight", "age"]]
-
-    #data_binary = data[["sex"]]
-
-    # Axis = 1 concatenates along columns, 0 along rows
-    #data = pd.concat([data_numeric, data_categorical, data_binary], axis=1)
-    #data = pd.concat([data_numeric, data_binary], axis=1)
-    #data = data_numeric
-
-    return data
 
 if __name__=="__main__":
     clinical_data = load_clinical_data()
