@@ -35,7 +35,6 @@ def reset(soft_reset=False):
         st.session_state.cluster_assignments = None
         st.session_state.target = None
         st.session_state.raw_data_selected = None
-        st.session_state.last_color = None
         toggle_button("refresh_helper_plots", True)
 
         # Reset the set_params bool (all the plots need to be remade from scratch bc new cols were defined)
@@ -54,7 +53,7 @@ def reset(soft_reset=False):
 
 
 
-#reset(soft_reset=True)
+reset(soft_reset=True)
 # SIDEBAR ---------------------------------------------------------------------
 with st.sidebar.expander('Data Selection', expanded=True):
 
@@ -79,23 +78,70 @@ with st.sidebar.expander('Data Selection', expanded=True):
         st.session_state.raw_data_full = raw_data_full
 
     if st.session_state.get("dataset", None) is not None:
-        st.session_state.selected_columns = tuple(st.multiselect(
+        st.session_state.selected_columns = list(st.multiselect(
             "Columns:",
             list(st.session_state.raw_data_full.columns),
             default=list(st.session_state.raw_data_full.columns)[:3],
         ))
 
-        if st.button("Apply Columns"):
+
+        if st.toggle("Enable Categorical Class Filtering", value=False, on_change=toggle_button, args=["cat_class_filter", True]):
+            print("Categorical Class Filtering enabled")
+
+            if st.session_state.dataset == "Heart Dataset":
+                categorical_cols = ["cp", "restecg", "thal", "slope", "ca"]
+
+            if st.session_state.dataset == "Vitals Dataset":
+                categorical_cols = ["cormack", "airway", "iv1", "preop_ecg", "department", "dx", "optype", "opname"]
+
+            categorical_excluding_selected_cols = list(set(categorical_cols) - set(st.session_state.selected_columns))
+
+            st.session_state.filter_col = st.selectbox(
+                "Column To Filter With:",
+                categorical_excluding_selected_cols
+            )
+            print("FILTER COL", st.session_state.filter_col)
+
+            st.session_state.categories_to_keep = list(st.multiselect(
+                "Categories to Keep:",
+                st.session_state.raw_data_full[st.session_state.filter_col].unique()
+                #st.session_state.raw_data_full[st.session_state.filter_col].astype(str).str.strip().str.lower().unique()
+            ))
+        else:
+            toggle_button("cat_class_filter", False)
+            st.session_state.filter_col = None
+            st.session_state.categories_to_keep = None
+
+        print("CAT_CLASS_FILTER", st.session_state["cat_class_filter"])
+
+        if st.button("Apply Columns & Filtering"):
             reset()
-            st.session_state.preprocessed_data =  st.session_state.data_processing_func(
-                selected_columns=st.session_state.selected_columns)
-            st.session_state.raw_data_selected = st.session_state.data_processing_func(
-                selected_columns=tuple(st.session_state.selected_columns), preprocess=False)
+
+            if st.session_state.get("cat_class_filter", None) is not None and st.session_state.cat_class_filter is True:
+                print("Applying Categorical Class Filtering!!!!!")
+                st.session_state.preprocessed_data =  st.session_state.data_processing_func(
+                    selected_columns=tuple(st.session_state.selected_columns),
+                    filterTuple = (st.session_state.filter_col, st.session_state.categories_to_keep), preprocess = True)
 
 
+            else:
+                print("NOT SUPPOSED TO BE HERE!!!!!")
+                st.session_state.preprocessed_data =  st.session_state.data_processing_func(
+                    selected_columns=tuple(st.session_state.selected_columns))
 
+            print("Raw DATA FULL IDXS -----------------------------------", print(list(st.session_state.raw_data_full.index)))
+            st.session_state.raw_data_selected = st.session_state.raw_data_full.loc[
+                st.session_state.preprocessed_data.index]
+            print("DEBUG DATA LEN", len(st.session_state.preprocessed_data))
 
+            print("LEFTOVER IDXSSSSSSSSSSSSS", list(st.session_state.preprocessed_data.index))
 
+            # if len(st.session_state.preprocessed_data.columns) > 10:
+            #     if len(st.session_state.preprocessed_data.columns) < 1000:
+            #         st.warning("")
+            #
+            # if len(st.session_state.preprocessed_data.columns) < 1000:
+            #     st.warning("")
 
 if "raw_data_selected" in st.session_state:
     with st.sidebar.expander('Data Information', expanded=True):
@@ -108,11 +154,12 @@ if "raw_data_selected" in st.session_state:
         if st.session_state.preprocessed_data is not None:
             with st.expander('PCA Projection Colored by Variable', expanded=True):
                 #combined_df = pd.concat([st.session_state.raw_data_selected, st.session_state.raw_data_full["target"]], axis=1)
+
+                datapoint_idxs = st.session_state.preprocessed_data.index
                 if st.session_state.dataset == "Heart Dataset":
                     color_col = st.selectbox("Variable to Color Points", list(st.session_state.raw_data_full.columns), index=0)
-
                     if st.session_state.refresh_helper_plots or st.session_state.last_color != color_col:
-                        plot.plotPCAWithColors(st.session_state.preprocessed_data, st.session_state.raw_data_full[color_col], "sidebar")
+                        plot.plotPCAWithColors(st.session_state.preprocessed_data, st.session_state.raw_data_selected[color_col], "sidebar")
                         st.session_state.last_color = color_col
 
                 if st.session_state.dataset == "Vitals Dataset":
@@ -121,7 +168,7 @@ if "raw_data_selected" in st.session_state:
                     color_col = st.selectbox("Variable to Color Points", list(st.session_state.preprocessed_data.columns), index=0)
 
                     if st.session_state.refresh_helper_plots or st.session_state.last_color != color_col:
-                        plot.plotPCAWithColors(st.session_state.preprocessed_data, st.session_state.preprocessed_data[color_col], "sidebar")
+                        plot.plotPCAWithColors(st.session_state.preprocessed_data, st.session_state.raw_data_selected[color_col], "sidebar")
                         st.session_state.last_color = color_col
 
                 st.image("sidebar_pca.png")
@@ -245,7 +292,7 @@ with col2:
             st.session_state.cluster_assignments = curr_cluster_assignments
 
             plot.plotPCAWithColors(st.session_state.preprocessed_data, dbscan_clusters, "dbscan")
-            st.image("dbscan_pca.png")
+        st.image("dbscan_pca.png")
 
     if st.session_state.get("cluster_assignments", None) is not None and "dbscan_clusters" in st.session_state.cluster_assignments:
 
