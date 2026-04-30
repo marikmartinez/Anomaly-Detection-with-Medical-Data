@@ -2,6 +2,13 @@ import sklearn
 import numpy as np
 import pandas as pd
 
+def getClusterAssignments(alg, *args, **kwargs):
+    if alg == 'kmeans':
+        return getKMeansClusterAssignments(*args, **kwargs)
+    elif alg == 'dbscan':
+        return getDBSCANClusterAssignments(*args, **kwargs)
+    elif alg == 'gmm':
+        return getGMMClusterAssignments(*args, **kwargs)
 
 
 # Used to make elbow plot for DBSCAN (finding epsilon)
@@ -141,4 +148,18 @@ def GMMComparison(data):
 def gmm_bic_score(estimator, X):
     return -estimator.bic(X)
 
+
+# def get_pca_plot_info(data, num_components=2):
+#     pca = sklearn.decomposition.PCA(n_components=num_components)
+#     print(f"PCA FUNC DATA LEN {len(data)}")
+#     print(f"PCA FUNC DATA COLS {len(data.columns)}")
+#     principal_components = pca.fit_transform(data)
+#
+#     # Getting the principal component vectors to plot
+#     explained_variance = pca.explained_variance_ratio_
+#
+#     # Calculating how much each feature contributes to principal components
+#     loadings = pca.components_.T * np.sqrt(explained_variance)
+#
+#     return (principal_components, explained_variance, loadings)
 
