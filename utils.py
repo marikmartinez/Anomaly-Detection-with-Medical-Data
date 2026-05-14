@@ -2,13 +2,13 @@ import sklearn
 import numpy as np
 import pandas as pd
 
-def getClusterAssignments(alg, *args, **kwargs):
+def getClusterAssignments(alg, *args):
     if alg == 'kmeans':
-        return getKMeansClusterAssignments(*args, **kwargs)
+        return getKMeansClusterAssignments(*args)
     elif alg == 'dbscan':
-        return getDBSCANClusterAssignments(*args, **kwargs)
+        return getDBSCANClusterAssignments(*args)
     elif alg == 'gmm':
-        return getGMMClusterAssignments(*args, **kwargs)
+        return getGMMClusterAssignments(*args)
 
 
 # Used to make elbow plot for DBSCAN (finding epsilon)

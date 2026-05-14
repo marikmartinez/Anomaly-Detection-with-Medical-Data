@@ -34,7 +34,7 @@ if __name__=="__main__":
     dbscan_clusters = utils.getDBSCANClusterAssignments(preprocessed_data, epsilon, min_samples)
 
     # Plotting the pca with the cluster colors
-    plot.plotPCAWithClusters(preprocessed_data, dbscan_clusters, "dbscan")
+    plot.plotPCAWithColors(preprocessed_data, dbscan_clusters, "dbscan")
 
     preprocessed_data["dbscan_clusters"] = dbscan_clusters
     print("NUM CLUSTERS", len(np.unique(dbscan_clusters)))
@@ -52,7 +52,7 @@ if __name__=="__main__":
     kmeans_clusters = utils.getKMeansClusterAssignments(preprocessed_data, k)
 
     # TODO: maybe pass in categorical values (not onehot) so that we can color by category
-    plot.plotPCAWithClusters(preprocessed_data, kmeans_clusters, "kmeans")
+    plot.plotPCAWithColors(preprocessed_data, kmeans_clusters, "kmeans")
 
     # GMM --------------------------------------------
     # TODO: Fix this!!!!!!!
@@ -60,7 +60,7 @@ if __name__=="__main__":
 
 
     gmm_clusters = utils.getGMMClusterAssignments(preprocessed_data, 4, "diag")
-    plot.plotPCAWithClusters(preprocessed_data, gmm_clusters, "gmm")
+    plot.plotPCAWithColors(preprocessed_data, gmm_clusters, "gmm")
 
 
 

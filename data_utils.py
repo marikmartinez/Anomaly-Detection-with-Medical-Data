@@ -2,6 +2,26 @@ import numpy as np
 import pandas as pd
 import pandas as df
 import sklearn
+HEART_COLS = {
+    "ordinal": ["cp", "restecg", "thal", "slope", "ca"],
+    "nominal": [],
+    "binary": ["sex", "fbs", "target", "exang"],
+    "numeric": ["age", "trestbps", "chol", "thalach", "oldpeak"]
+}
+
+
+VITAL_COLS = {
+    "ordinal": ["cormack", "airway", "preop_ecg", "asa"],
+    "nominal": ["optype", "opname", "dx", "department", "iv1", "approach", "ane_type"],
+    "binary": ["sex", "death_inhosp", "emop", "preop_dm", "preop_htn"],
+    "numeric":  ["age", "height", "weight", "bmi", "preop_hb", "preop_plt", "preop_pt", "preop_aptt",
+                    "preop_na", "preop_k", "preop_gluc", "preop_alb", "preop_ast", "preop_alt", "preop_bun",
+                    "preop_cr",
+                    "intraop_rbc", "intraop_ffp", "intraop_crystalloid", "intraop_colloid", "intraop_ppf",
+                    "intraop_ftn",
+                    "intraop_rocu", "intraop_vecu", "intraop_eph", "intraop_phe", "intraop_epi", "intraop_ca"]
+
+}
 
 # Preprocessing functions that need to be a function transformer
 # So they can actually be used in the pipelines
@@ -26,20 +46,11 @@ def load_clinical_data(filePath="data/VitalDB/clinical_data.csv", selected_colum
     #unimportant_cols = ["tubesize", "dltubesize", "aline1"]
     #data = data.drop(columns=often_na_cols + unimportant_cols)
 
+    numeric_cols = VITAL_COLS["numeric"]
+    ordinal_cols = VITAL_COLS["ordinal"]
+    nominal_cols = VITAL_COLS["nominal"]
+    binary_cols = VITAL_COLS["binary"]
 
-    numeric_cols = ["age", "height", "weight", "bmi", "asa", "preop_hb", "preop_plt", "preop_pt", "preop_aptt",
-                    "preop_na", "preop_k", "preop_gluc", "preop_alb", "preop_ast", "preop_alt", "preop_bun",
-                    "preop_cr",
-                    "intraop_rbc", "intraop_ffp", "intraop_crystalloid", "intraop_colloid", "intraop_ppf",
-                    "intraop_ftn",
-                    "intraop_rocu", "intraop_vecu", "intraop_eph", "intraop_phe", "intraop_epi", "intraop_ca"]
-
-    # numeric_cols=["age", "height", "weight"]
-    # categorical_cols=["department", "optype", "dx", "opname", "preop_ecg", "preop_pft"]
-    # TODO: figure out what to do with the really big categorical cols
-    ordinal_cols = ["cormack", "airway", "preop_ecg"]
-    nominal_cols = ["optype", "opname", "dx", "department", "iv1"]
-    binary_cols = ["sex", "death_inhosp"]
     data["age"] = pd.to_numeric(data["age"], errors='coerce')
 
     for col in nominal_cols:
@@ -53,6 +64,9 @@ def load_clinical_data(filePath="data/VitalDB/clinical_data.csv", selected_colum
 
         if col_to_filter in nominal_cols:
             nominal_cols.remove(col_to_filter)
+
+        if col_to_filter in binary_cols:
+            binary_cols.remove(col_to_filter)
 
         data = data[data[col_to_filter].isin(categories_to_keep)]
         # TODO: idk if this gonna work
@@ -68,7 +82,6 @@ def load_clinical_data(filePath="data/VitalDB/clinical_data.csv", selected_colum
     if preprocess:
         original_index = data.index  # save index as a column
         data = data.reset_index(drop=True)
-        print("NEW DATA IDXS AFTER RESET", list(data.index))
 
         # Do preprocessing steps
         data = preprocess_dataframe(data, numeric_cols, nominal_cols, ordinal_cols, binary_cols, onehot=onehot)
@@ -85,8 +98,6 @@ def load_clinical_data(filePath="data/VitalDB/clinical_data.csv", selected_colum
         # a diff column starting with the original categorical variable name
         data = data.loc[:, data.columns.str.startswith(selected_columns)]
 
-    print("AHHHHHHHHHHHHHH WTF IS HAPPENING")
-    print("COLUMNS", data.columns)
 
     return data
 
@@ -96,14 +107,12 @@ def load_heart_data(filePath="data/heart.csv", selected_columns=None, filterTupl
 
         # Separate the diff cols based on data type
     # Done like this so they can be passed into the pipeline (do different preprocessing steps to each type of col)
-    numeric_cols=["age", "trestbps", "chol", "thalach", "oldpeak"]
+    numeric_cols=HEART_COLS["numeric"]
 
+    nominal_cols=HEART_COLS["nominal"]
+    ordinal_cols=HEART_COLS["ordinal"]
 
-    # TODO: double check that these are right
-    nominal_cols=[]
-    ordinal_cols=["cp", "restecg", "thal", "slope", "ca"]
-
-    binary_cols=["sex", "fbs", "target", "exang"]
+    binary_cols=HEART_COLS["binary"]
     # DATA CLEANING
 
     for col in nominal_cols:
@@ -117,6 +126,10 @@ def load_heart_data(filePath="data/heart.csv", selected_columns=None, filterTupl
 
         if col_to_filter in nominal_cols:
             nominal_cols.remove(col_to_filter)
+
+
+        if col_to_filter in binary_cols:
+            binary_cols.remove(col_to_filter)
 
         data = data[data[col_to_filter].isin(categories_to_keep)]
         # TODO: idk if this gonna work
